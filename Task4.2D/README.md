@@ -6,6 +6,7 @@ Create a web server
 Control LEDs from a browser
 
 Hardware:
+
 Arduino Nano 33 IoT
 Breadboard
 3 LEDs + resistors
