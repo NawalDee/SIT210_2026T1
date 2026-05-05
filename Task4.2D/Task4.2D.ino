@@ -11,6 +11,30 @@ int livingRoom = 2;
 int bathroom = 3;
 int closet = 4;
 
+// this function takes room name as string and turns LED on/off
+void controlLight(String room, String state) {
+
+  int value;
+
+  // check if we want ON or OFF
+  if (state == "on") {
+    value = HIGH;
+  } else {
+    value = LOW;
+  }
+
+  // check which room and control the correct LED
+  if (room == "living room") {
+    digitalWrite(livingRoom, value);
+  }
+  else if (room == "bathroom") {
+    digitalWrite(bathroom, value);
+  }
+  else if (room == "closet") {
+    digitalWrite(closet, value);
+  }
+}
+
 void setup() {
   Serial.begin(9600);
 
@@ -18,7 +42,7 @@ void setup() {
   pinMode(bathroom, OUTPUT);
   pinMode(closet, OUTPUT);
 
-  // Connect to WiFi
+  // connect to WiFi
   WiFi.begin(ssid, pass);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -33,35 +57,49 @@ void setup() {
 }
 
 void loop() {
+
+  // simulate cloud/backend input using Serial
+  if (Serial.available()) {
+    String roomFromCloud = Serial.readStringUntil('\n');
+    roomFromCloud.trim();
+
+    controlLight(roomFromCloud, "on");
+
+    Serial.println("Cloud command received: " + roomFromCloud);
+  }
+
   WiFiClient client = server.available();
 
   if (client) {
     String request = client.readStringUntil('\r');
     client.flush();
 
-    // Control LEDs
-    if (request.indexOf("/living/on") != -1) {
-      digitalWrite(livingRoom, HIGH);
-    }
-    if (request.indexOf("/living/off") != -1) {
-      digitalWrite(livingRoom, LOW);
+    // call function using room name from web request
+    if (request.indexOf("/control") != -1) {
+
+      if (request.indexOf("room=living") != -1) {
+        if (request.indexOf("state=on") != -1)
+          controlLight("living room", "on");
+        else
+          controlLight("living room", "off");
+      }
+
+      if (request.indexOf("room=bathroom") != -1) {
+        if (request.indexOf("state=on") != -1)
+          controlLight("bathroom", "on");
+        else
+          controlLight("bathroom", "off");
+      }
+
+      if (request.indexOf("room=closet") != -1) {
+        if (request.indexOf("state=on") != -1)
+          controlLight("closet", "on");
+        else
+          controlLight("closet", "off");
+      }
     }
 
-    if (request.indexOf("/bathroom/on") != -1) {
-      digitalWrite(bathroom, HIGH);
-    }
-    if (request.indexOf("/bathroom/off") != -1) {
-      digitalWrite(bathroom, LOW);
-    }
-
-    if (request.indexOf("/closet/on") != -1) {
-      digitalWrite(closet, HIGH);
-    }
-    if (request.indexOf("/closet/off") != -1) {
-      digitalWrite(closet, LOW);
-    }
-
-    // HTML Page
+    // simple HTML page
     client.println("HTTP/1.1 200 OK");
     client.println("Content-type:text/html");
     client.println();
@@ -70,16 +108,16 @@ void loop() {
     client.println("<h1>LED Control</h1>");
 
     client.println("<h2>Living Room</h2>");
-    client.println("<a href='/living/on'>ON</a><br>");
-    client.println("<a href='/living/off'>OFF</a><br>");
+    client.println("<a href='/control?room=living&state=on'>ON</a><br>");
+    client.println("<a href='/control?room=living&state=off'>OFF</a><br>");
 
     client.println("<h2>Bathroom</h2>");
-    client.println("<a href='/bathroom/on'>ON</a><br>");
-    client.println("<a href='/bathroom/off'>OFF</a><br>");
+    client.println("<a href='/control?room=bathroom&state=on'>ON</a><br>");
+    client.println("<a href='/control?room=bathroom&state=off'>OFF</a><br>");
 
     client.println("<h2>Closet</h2>");
-    client.println("<a href='/closet/on'>ON</a><br>");
-    client.println("<a href='/closet/off'>OFF</a><br>");
+    client.println("<a href='/control?room=closet&state=on'>ON</a><br>");
+    client.println("<a href='/control?room=closet&state=off'>OFF</a><br>");
 
     client.println("</body></html>");
 
